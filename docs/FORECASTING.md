@@ -1,4 +1,4 @@
-# Forecasting methodology (as implemented in v0.2.0)
+# Forecasting methodology (as implemented in v0.3.0)
 
 Forecasts are **statistical scenarios**, not predictions or price targets. Code: `src/analytics/forecast.ts`, tests in `src/analytics/phase3.test.ts`.
 

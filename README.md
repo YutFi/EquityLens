@@ -4,7 +4,7 @@
 
 A free, open-source, no-account stock research and education platform, Malaysia (Bursa) first. It runs entirely in your browser, is hosted as a static site, and uses no paid API, backend or subscription.
 
-> **Status: v0.2.0.** Only what is listed under "What works today" exists. Everything else is labelled as not built inside the app. See [`PROJECT_SPEC.md`](PROJECT_SPEC.md) for the full vision and [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) for the honest gaps.
+> **Status: v0.3.0.** Only what is listed under "What works today" exists. Everything else is labelled as not built inside the app. See [`PROJECT_SPEC.md`](PROJECT_SPEC.md) for the full vision and [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) for the honest gaps.
 
 ## Read this first: data
 
@@ -12,7 +12,8 @@ A free, open-source, no-account stock research and education platform, Malaysia 
 
 1. **Your own price data**: import daily OHLCV CSV files you are entitled to use. Stored only in your browser.
 2. **Your own financial statements**: type them in from a company's published report, or import a CSV (template provided). Labelled "entered by you", never verified.
-3. **Optional: your own EODHD key** (Settings). Adds a *Fetch from EODHD* button for Bursa companies. **Experimental and untested live**: the build environment could not reach eodhd.com, so CORS and free-plan Bursa coverage are unconfirmed. If it fails you get a plain explanation and CSV import still works.
+3. **Optional: Moomoo local bridge** (Settings). A read-only script on your computer serves daily candles and a live quote from your own Moomoo account to the app. The API is free, but market data needs the quote right on your account. **Experimental and untested against a live account.** See [docs/MOOMOO_BRIDGE.md](docs/MOOMOO_BRIDGE.md).
+4. **Optional: your own EODHD key** (Settings). Adds a *Fetch from EODHD* button for Bursa companies. **Experimental and untested live**: the build environment could not reach eodhd.com, so CORS and free-plan Bursa coverage are unconfirmed. If it fails you get a plain explanation and CSV import still works.
 4. **Synthetic demo data**: fictional companies with generated prices *and generated statements* so every page can be explored. Always labelled synthetic, never presented as market data.
 5. **An unverified seed directory** of well-known Bursa names (code and name only; not the official listing).
 

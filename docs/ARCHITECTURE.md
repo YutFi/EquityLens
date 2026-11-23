@@ -34,7 +34,7 @@ src/
 interface PriceProvider { id: string; name: string; load(): Promise<ProviderResult> }
 ```
 
-`loadFromProviders` uses `Promise.allSettled`, so one failing provider degrades to a notice rather than a crash. Only the local provider is registered. EODHD is an optional on-demand fetch (user key), not a registered provider. To add one, see `CONTRIBUTING.md`.
+`loadFromProviders` uses `Promise.allSettled`, so one failing provider degrades to a notice rather than a crash. Only the local provider is registered. EODHD (user key) and the Moomoo local bridge (loopback only) are optional on-demand fetches, not registered providers: they run only when you press Fetch or switch Live on. The bridge client is `src/data/providers/moomoo.ts`, the polling hook `src/state/useLiveQuote.ts`, and the script `bridge/moomoo_bridge.py` (see `docs/MOOMOO_BRIDGE.md`). To add one, see `CONTRIBUTING.md`.
 
 ## Routing and deployment
 

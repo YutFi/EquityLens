@@ -20,7 +20,7 @@ export function DataSources() {
       <div className="stack">
         <div className="banner warn">
           <b>Honest status of live data.</b>
-          No free, legitimate, browser-accessible live feed for Bursa Malaysia prices was found that works from a static GitHub Pages site without an API key, a paid proxy or a backend. Rather than scrape an unlicensed source or fake it, EquityLens runs on files you import. Company financials are typed or imported by you the same way. If you have your own EODHD key you can optionally fetch a year of Bursa history from Settings; that route is experimental and was not tested live.
+          No free, legitimate, browser-accessible live feed for Bursa Malaysia prices was found that works from a static GitHub Pages site without an API key, a paid proxy or a backend. Rather than scrape an unlicensed source or fake it, EquityLens runs on files you import. Company financials are typed or imported by you the same way. Two optional routes exist and both are experimental and untested live: your own EODHD key (a year of Bursa history), and a read-only local bridge to your own Moomoo account (daily candles plus a live quote, see Settings and docs/MOOMOO_BRIDGE.md).
         </div>
 
         <section className="panel" aria-label="Registered providers">

@@ -60,4 +60,43 @@ describe('App smoke test', () => {
     await user.click(screen.getAllByRole('link', { name: /Overview/i })[0]);
     expect((await screen.findAllByText(/demo/i)).length).toBeGreaterThan(0);
   });
+
+  it('offers the Moomoo bridge in Settings and rejects addresses that are not on this computer', async () => {
+    window.location.hash = '#/settings';
+    const user = userEvent.setup();
+    render(<App />);
+    expect(await screen.findByText(/Moomoo local bridge/i)).toBeInTheDocument();
+    const box = screen.getByLabelText(/bridge address/i);
+    await user.clear(box);
+    await user.type(box, 'http://example.com');
+    await waitFor(() => expect(box).toHaveAttribute('aria-invalid', 'true'));
+    expect(screen.getByRole('button', { name: /test connection/i })).toBeDisabled();
+  });
+
+  it('shows no Moomoo controls on a company page until the bridge is enabled', async () => {
+    window.location.hash = '#/settings';
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: /load synthetic demo data/i }));
+    // Demo data lives in memory only (jsdom has no IndexedDB), so move between pages without remounting the app.
+    window.location.hash = '#/company/XKLS%3ADEMO1';
+    expect(await screen.findByRole('button', { name: /replace price history/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /fetch from moomoo bridge/i })).not.toBeInTheDocument();
+
+    window.location.hash = '#/settings';
+    await screen.findByText(/Moomoo local bridge/i);
+    localStorage.setItem('equitylens.moomoo.bridge', JSON.stringify({ enabled: true, url: 'http://127.0.0.1:8765' }));
+    const fetchMock = vi.fn(async (_url: string) => new Response(JSON.stringify({ source: 'mock', price: 5.5, prevClose: 5.4, time: '2099-01-02 10:00:00' }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    try {
+      window.location.hash = '#/company/XKLS%3ADEMO1';
+      expect(await screen.findByRole('button', { name: /fetch from moomoo bridge/i })).toBeInTheDocument();
+      expect(fetchMock).not.toHaveBeenCalled();                       // nothing is requested until Live is switched on
+      await user.click(screen.getByRole('button', { name: /^live quote$/i }));
+      expect(await screen.findByText(/MOCK quote \(synthetic\)/i)).toBeInTheDocument();
+      expect(fetchMock.mock.calls[0][0]).toBe('http://127.0.0.1:8765/quote?code=DEMO1');
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });

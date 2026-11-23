@@ -98,6 +98,7 @@ export async function clearAllData(): Promise<void> {
     localStorage.removeItem(SETTINGS_KEY);
     // The optional EODHD key is a credential, so "clear everything" removes it too.
     localStorage.removeItem('equitylens.eodhd.key');
+    localStorage.removeItem('equitylens.moomoo.bridge');
   } catch {
     /* ignore */
   }

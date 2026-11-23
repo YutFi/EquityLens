@@ -1,7 +1,7 @@
 {
   "name": "equitylens",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "EquityLens: free, open-source, account-free stock market research platform (Malaysia first).",
   "license": "MIT",
   "type": "module",

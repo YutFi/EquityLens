@@ -159,7 +159,7 @@ export function Layout() {
               </div>
             ))}
           </nav>
-          <div className="sidebar-foot">v0.2.0 · research tools<br />Research &amp; education only.</div>
+          <div className="sidebar-foot">v0.3.0 · research tools<br />Research &amp; education only.</div>
         </aside>
 
         <header className="header">

@@ -1,4 +1,4 @@
-# Formulas (as implemented in v0.2.0)
+# Formulas (as implemented in v0.3.0)
 
 Only calculations that exist in code are listed. Each has unit tests under `src/analytics/` or `src/data/`.
 

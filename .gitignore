@@ -7,4 +7,7 @@ coverage/
 .env.*
 !.env.example
 *.log
+__pycache__/
+*.pyc
+moomoo_export/
 .vite/

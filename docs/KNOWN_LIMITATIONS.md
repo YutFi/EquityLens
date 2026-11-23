@@ -1,10 +1,11 @@
-# Known limitations (v0.2.0)
+# Known limitations (v0.3.0)
 
 ## Data
 - **No live or automatic market data.** Prices come from CSV files you import or from labelled synthetic demo data.
 - Imported data is treated as unverified; the app cannot confirm its accuracy, completeness or corporate-action adjustment.
 - Market capitalisation and shares outstanding exist only if **you** enter them with your statements. Sector classification beyond a few well-known names and index constituents are unavailable.
 - **Financial statements are entered or imported by you.** EquityLens cannot verify them, and every ratio, score, valuation and scanner result inherits any error in what was typed.
+- The optional Moomoo bridge is **untested against a live account**: quote rights for Bursa, quotas, the `MY` market prefix and browser access to localhost from the hosted page are unconfirmed. Live quotes are display-only; forecasts use stored daily bars. See `MOOMOO_BRIDGE.md`.
 - The optional EODHD route is **untested live** (CORS and free-plan Bursa coverage unconfirmed; the free plan documents ~20 calls/day and 12 months of history).
 - The seed directory is hand-compiled and unverified; it is not the official Bursa listing or KLCI constituent list.
 

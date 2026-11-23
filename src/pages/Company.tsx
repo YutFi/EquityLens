@@ -16,6 +16,8 @@ import { useMetrics } from '../state/useMetrics';
 import { marketCap } from '../analytics/ratios';
 import { peerMultiples } from '../analytics/metrics';
 import { buildEodhdSeries, fetchEodhdHistory, loadEodhdKey } from '../data/providers/eodhd';
+import { applyLiveQuote, buildMoomooSeries, describeFailure, fetchBridgeHistory, loadBridgeConfig, moomooCode } from '../data/providers/moomoo';
+import { useLiveQuote } from '../state/useLiveQuote';
 import { FundamentalsDialog } from '../components/FundamentalsDialog';
 import { FinancialsPanel } from '../components/research/FinancialsPanel';
 import { ForecastPanel } from '../components/research/ForecastPanel';
@@ -67,14 +69,23 @@ export function CompanyPage() {
   const [editFin, setEditFin] = useState(false);
   const [fetchMsg, setFetchMsg] = useState<string | null>(null);
   const [fetching, setFetching] = useState(false);
+  const [live, setLive] = useState(false);
+  const bridge = useMemo(() => loadBridgeConfig(), []);
   const metrics = useMetrics();
 
   const sec = app.securities.find((s) => s.id === id);
   const series = app.state.seriesById[id];
+  const bridgeOk = bridge.enabled && sec != null && moomooCode(sec) != null;
+  const liveState = useLiveQuote(bridgeOk ? sec : undefined, bridge.url, bridgeOk && live);
   const advanced = app.state.settings.level === 'advanced';
   const market = sec ? MARKETS[sec.market] : MARKETS[app.state.settings.market];
 
-  const base = useMemo(() => (!series ? [] : adjusted && series.adjustedAvailable ? applyAdjustment(series.bars) : series.bars), [series, adjusted]);
+  const base = useMemo(() => {
+    if (!series) return [];
+    if (adjusted && series.adjustedAvailable) return applyAdjustment(series.bars);
+    // Live quote is display-only: it is folded into today's candle here and never stored or analysed.
+    return live ? applyLiveQuote(series.bars, liveState.quote) : series.bars;
+  }, [series, adjusted, live, liveState.quote]);
   const bars = useMemo(() => aggregateBars(sliceRange(base, range), interval), [base, range, interval]);
 
   if (!sec) {
@@ -90,6 +101,23 @@ export function CompanyPage() {
     else {
       await app.importSeries({ ...sec, origin: sec.origin === 'seed' ? 'import' : sec.origin }, buildEodhdSeries(sec, r.bars, r.rejected));
       setFetchMsg(`Loaded ${r.bars.length} daily bars from EODHD${r.rejected ? ` (${r.rejected} rows rejected)` : ''}. Not independently verified.`);
+    }
+    setFetching(false);
+  }
+
+  async function fetchMoomoo() {
+    if (!sec) return;
+    setFetching(true); setFetchMsg(null);
+    const from = addDays(new Date().toISOString().slice(0, 10), -3 * 365);
+    const r = await fetchBridgeHistory(sec, bridge.url, { from });
+    if (!r.ok) setFetchMsg(describeFailure(r));
+    else if (r.source === 'mock' && series && series.quality.status !== 'demo') {
+      setFetchMsg('The bridge is running in mock mode (synthetic data). It was not allowed to replace your real data. Restart the bridge without --mock to fetch from Moomoo.');
+    } else {
+      await app.importSeries({ ...sec, origin: sec.origin === 'seed' ? 'import' : sec.origin }, buildMoomooSeries(sec, r.bars, r.rejected, r.source));
+      setFetchMsg(r.source === 'mock'
+        ? `Loaded ${r.bars.length} SYNTHETIC bars from the bridge's mock mode. These are not real prices.`
+        : `Loaded ${r.bars.length} daily bars from your Moomoo bridge${r.rejected ? ` (${r.rejected} rows rejected)` : ''}. Replaced the previous price history. Not independently verified.`);
     }
     setFetching(false);
   }
@@ -115,6 +143,8 @@ export function CompanyPage() {
       actions={
         <>
           {sec.market === 'XKLS' && sec.kind === 'equity' && loadEodhdKey() !== '' && <button type="button" className="btn" disabled={fetching} onClick={() => void fetchEodhd()}>{fetching ? 'Fetching…' : 'Fetch from EODHD (experimental)'}</button>}
+          {bridgeOk && <button type="button" className="btn" disabled={fetching} title="Replaces this security's stored history with daily bars from your Moomoo account via the local bridge" onClick={() => void fetchMoomoo()}>{fetching ? 'Fetching…' : 'Fetch from Moomoo bridge'}</button>}
+          {bridgeOk && <button type="button" className="btn" aria-pressed={live} onClick={() => setLive((v) => !v)}>{live ? '● Live quote on' : 'Live quote'}</button>}
           <button type="button" className="btn" onClick={() => openImport(sec.id)}>{series ? 'Replace price history' : 'Import price history'}</button>
           {series && (confirmRemove
             ? <button type="button" className="btn danger" onClick={() => { void app.removeData(sec.id); setConfirmRemove(false); }}>Confirm: remove local data</button>
@@ -123,6 +153,22 @@ export function CompanyPage() {
       }
     >
       {fetchMsg && <div className="banner info" role="status" style={{ marginBottom: 12 }}>{fetchMsg}</div>}
+          {bridgeOk && live && (
+            <div className="banner info" role="status" aria-live="polite" style={{ marginBottom: 12 }}>
+              {liveState.quote ? (
+                <>
+                  <b>{liveState.quote.source === 'mock' ? 'MOCK quote (synthetic)' : 'Live quote via your Moomoo bridge'}:</b>{' '}
+                  <span className="num">{fmtPrice(liveState.quote.price, sec.currency)}</span>
+                  {liveState.quote.prevClose != null && <span className={signClass(liveState.quote.price - liveState.quote.prevClose)}> {arrow(liveState.quote.price - liveState.quote.prevClose)} {fmtPct(pctChange(liveState.quote.prevClose, liveState.quote.price))} vs previous close</span>}
+                  {' · '}quote time <span className="num">{liveState.quote.time || 'not given'}</span>
+                  {liveState.quote.date != null && all.length > 0 && liveState.quote.date < (all.at(-1)?.t ?? '') && ' · older than your stored data, so not charted'}
+                  {'. '}Not verified; shown on the chart only. Forecasts use stored daily bars, so press Fetch from Moomoo bridge to store today&apos;s bar.
+                </>
+              ) : liveState.failure ? (
+                <><b>Live quote unavailable.</b> {describeFailure(liveState.failure)} Retrying every 30 seconds.</>
+              ) : 'Waiting for the first quote from your bridge…'}
+            </div>
+          )}
       {!series ? (
         <div className="panel empty">
           <h2>No price data loaded for this security</h2>

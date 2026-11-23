@@ -2,6 +2,18 @@
 
 All notable changes are recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.3.0] - 2026-11-23
+
+### Added
+- Optional, experimental **Moomoo local bridge**: a read-only Python script (`bridge/moomoo_bridge.py`) that serves daily candles and a snapshot quote from the user's own Moomoo OpenD on loopback, with a mock mode and CSV export
+- Settings panel for the bridge (loopback-only address, connection test), a **Fetch from Moomoo bridge** button and a **Live quote** toggle on Bursa company pages (polls only while enabled and the page is visible; display-only)
+- `docs/MOOMOO_BRIDGE.md` with costs, setup, safety model and what is not verified; provider catalog entry
+- Python unit tests for the bridge (CI job) and TypeScript tests for the client and polling hook
+
+### Safety
+- Moomoo data is never labelled "verified"; mock-bridge data is labelled synthetic and cannot overwrite real stored data
+- The app refuses non-loopback bridge addresses; the bridge binds to loopback, checks Host and Origin, and contains no trading code
+
 ## [0.2.0] - 2026-11-23
 
 ### Added
