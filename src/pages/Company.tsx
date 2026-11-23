@@ -12,10 +12,26 @@ import type { IntervalKey, RangeKey } from '../core/types';
 import { addDays } from '../core/dates';
 import { aggregateBars, applyAdjustment, sliceRange } from '../data/aggregate';
 import { useApp } from '../state/AppContext';
+import { useMetrics } from '../state/useMetrics';
+import { marketCap } from '../analytics/ratios';
+import { peerMultiples } from '../analytics/metrics';
+import { buildEodhdSeries, fetchEodhdHistory, loadEodhdKey } from '../data/providers/eodhd';
+import { FundamentalsDialog } from '../components/FundamentalsDialog';
+import { FinancialsPanel } from '../components/research/FinancialsPanel';
+import { ForecastPanel } from '../components/research/ForecastPanel';
+import { RiskPanel } from '../components/research/RiskPanel';
+import { TechnicalsPanel } from '../components/research/TechnicalsPanel';
+import { ValuationPanel } from '../components/research/ValuationPanel';
 
 const RANGES: RangeKey[] = ['1M', '3M', '6M', '1Y', '3Y', '5Y', 'MAX'];
 const INTERVALS: { key: IntervalKey; label: string }[] = [{ key: 'daily', label: 'Daily' }, { key: 'weekly', label: 'Weekly' }, { key: 'monthly', label: 'Monthly' }];
-const UNAVAILABLE = <span className="muted">Unavailable (no verified source in Phase 1)</span>;
+const UNAVAILABLE = <span className="muted">Unavailable (no verified source; never guessed)</span>;
+
+type Tab = 'overview' | 'technicals' | 'financials' | 'valuation' | 'forecast' | 'risk';
+const TABS: { key: Tab; label: string }[] = [
+  { key: 'overview', label: 'Overview' }, { key: 'technicals', label: 'Price & technicals' }, { key: 'financials', label: 'Financials & health' },
+  { key: 'valuation', label: 'Valuation' }, { key: 'forecast', label: 'Forecast' }, { key: 'risk', label: 'Risk' },
+];
 
 export function CompanyIndex() {
   const app = useApp();
@@ -47,6 +63,11 @@ export function CompanyPage() {
   const [interval, setInterval] = useState<IntervalKey>('daily');
   const [adjusted, setAdjusted] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
+  const [tab, setTab] = useState<Tab>('overview');
+  const [editFin, setEditFin] = useState(false);
+  const [fetchMsg, setFetchMsg] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
+  const metrics = useMetrics();
 
   const sec = app.securities.find((s) => s.id === id);
   const series = app.state.seriesById[id];
@@ -60,7 +81,22 @@ export function CompanyPage() {
     return <Page title="Company not found"><div className="panel empty"><h2>No security with id “{id}”</h2><p><Link to="/discover">Browse the directory</Link></p></div></Page>;
   }
 
+  async function fetchEodhd() {
+    if (!sec) return;
+    setFetching(true); setFetchMsg(null);
+    const from = addDays(new Date().toISOString().slice(0, 10), -365);
+    const r = await fetchEodhdHistory(sec, loadEodhdKey(), { from });
+    if (!r.ok) setFetchMsg(r.message);
+    else {
+      await app.importSeries({ ...sec, origin: sec.origin === 'seed' ? 'import' : sec.origin }, buildEodhdSeries(sec, r.bars, r.rejected));
+      setFetchMsg(`Loaded ${r.bars.length} daily bars from EODHD${r.rejected ? ` (${r.rejected} rows rejected)` : ''}. Not independently verified.`);
+    }
+    setFetching(false);
+  }
   const all = series?.bars ?? [];
+  const fundamentals = app.state.fundamentalsById[sec.id] ?? null;
+  const benchBars = metrics.benchmark && metrics.benchmark.security.id !== sec.id ? metrics.benchmark.series.bars : null;
+  const peers = peerMultiples(metrics.all, sec);
   const last = all.at(-1);
   const prev = all.length > 1 ? all[all.length - 2] : null;
   const change = last && prev ? last.c - prev.c : null;
@@ -78,6 +114,7 @@ export function CompanyPage() {
       subtitle={<><span className="num">{sec.code}</span> · {market.name} · {sec.currency} {series && <QualityBadge quality={series.quality} />}</>}
       actions={
         <>
+          {sec.market === 'XKLS' && sec.kind === 'equity' && loadEodhdKey() !== '' && <button type="button" className="btn" disabled={fetching} onClick={() => void fetchEodhd()}>{fetching ? 'Fetching…' : 'Fetch from EODHD (experimental)'}</button>}
           <button type="button" className="btn" onClick={() => openImport(sec.id)}>{series ? 'Replace price history' : 'Import price history'}</button>
           {series && (confirmRemove
             ? <button type="button" className="btn danger" onClick={() => { void app.removeData(sec.id); setConfirmRemove(false); }}>Confirm: remove local data</button>
@@ -85,6 +122,7 @@ export function CompanyPage() {
         </>
       }
     >
+      {fetchMsg && <div className="banner info" role="status" style={{ marginBottom: 12 }}>{fetchMsg}</div>}
       {!series ? (
         <div className="panel empty">
           <h2>No price data loaded for this security</h2>
@@ -98,6 +136,16 @@ export function CompanyPage() {
             <div className="banner warn" role="status"><b>{series.quality.status === 'stale' ? 'Stale data.' : 'Incomplete data.'}</b>{series.quality.notes.join(' ')}</div>
           )}
 
+          <div className="tabs" role="tablist" aria-label="Research sections">
+            {TABS.map((t) => <button key={t.key} type="button" role="tab" className="chip" aria-selected={tab === t.key} onClick={() => setTab(t.key)}>{t.label}</button>)}
+          </div>
+          {tab === 'technicals' && <TechnicalsPanel bars={all} currency={sec.currency} />}
+          {tab === 'financials' && <FinancialsPanel fundamentals={fundamentals} price={last?.c ?? null} onEdit={() => setEditFin(true)} />}
+          {tab === 'valuation' && <ValuationPanel fundamentals={fundamentals} price={last?.c ?? null} bars={all} peers={peers} currency={sec.currency} onEdit={() => setEditFin(true)} />}
+          {tab === 'forecast' && <ForecastPanel bars={all} currency={sec.currency} />}
+          {tab === 'risk' && <RiskPanel bars={all} bench={benchBars} fundamentals={fundamentals} price={last?.c ?? null} onEdit={() => setEditFin(true)} />}
+
+          {tab === 'overview' && (<>
           <section className="grid cols-4" aria-label="Price summary">
             <div className="panel stat hero">
               <div className="label">Latest close</div>
@@ -117,8 +165,9 @@ export function CompanyPage() {
             </div>
             <div className="panel stat">
               <div className="label">Market cap</div>
-              <div className="value muted" style={{ fontSize: 17 }}>Unavailable</div>
-              <div className="sub">Needs shares outstanding from a verified source (Phase 2)</div>
+              {(() => { const mc = fundamentals && last ? marketCap(fundamentals, last.c) : null; return mc != null
+                ? <><div className="value" style={{ fontSize: 17 }}>{fmtCompact(mc)}</div><div className="sub">Latest close × shares you entered</div></>
+                : <><div className="value muted" style={{ fontSize: 17 }}>Unavailable</div><div className="sub">Enter shares outstanding under Financials</div></>; })()}
             </div>
           </section>
 
@@ -182,7 +231,7 @@ export function CompanyPage() {
                 <dt>Sector</dt><dd>{sec.sector ?? <span className="muted">Not recorded (never guessed)</span>}</dd>
                 <dt>Industry</dt><dd>{UNAVAILABLE}</dd>
                 <dt>Description</dt><dd>{UNAVAILABLE}</dd>
-                <dt>Shares outstanding</dt><dd>{UNAVAILABLE}</dd>
+                <dt>Shares outstanding</dt><dd>{fundamentals?.sharesOutstanding ? <span className="num">{fundamentals.sharesOutstanding.toLocaleString()} <span className="muted">(entered by you)</span></span> : UNAVAILABLE}</dd>
                 <dt>Headquarters / website</dt><dd>{UNAVAILABLE}</dd>
                 <dt>Directory entry</dt><dd>{sec.origin === 'seed' ? 'Seed directory (unverified)' : sec.origin === 'demo' ? 'Synthetic demo' : 'Added by you'}</dd>
               </dl>
@@ -194,8 +243,11 @@ export function CompanyPage() {
           </div>
 
           <section className="panel" aria-label="Fundamentals">
-            <header><h2>Financial statements, ratios and health score</h2><span className="badge unavailable">Phase 2 · not built</span></header>
-            <p className="muted">Income statement, balance sheet, cash flow, ratios and the transparent 0–100 financial-health model are planned for Phase 2. They need a legitimate source of Bursa company financials, which has not been secured yet. Nothing is estimated in the meantime.</p>
+            <header><h2>Financial statements, ratios and health score</h2><span className={`badge ${fundamentals ? 'estimated' : 'unavailable'}`}>{fundamentals ? 'Entered by you' : 'No statements loaded'}</span></header>
+            <p className="muted">{fundamentals
+              ? 'Statements, ratios, the health score, valuation and risk tools are built from the figures you entered. Open the Financials & health tab to see them.'
+              : 'There is no free licensed feed of Bursa company statements. Enter or import figures from the company\'s published report to unlock ratios, the health score, valuation and the opportunity scanner. Nothing is estimated in the meantime.'}</p>
+            <div className="row"><button type="button" className="btn" onClick={() => setTab('financials')}>Open Financials & health</button><button type="button" className="btn primary" onClick={() => setEditFin(true)}>{fundamentals ? 'Add or replace figures' : 'Enter or import financials'}</button></div>
           </section>
 
           {advanced && (
@@ -214,6 +266,8 @@ export function CompanyPage() {
               </div>
             </section>
           )}
+          </>)}
+          {editFin && <FundamentalsDialog security={sec} onClose={() => setEditFin(false)} />}
         </div>
       )}
     </Page>

@@ -1,16 +1,34 @@
-# Forecasting methodology
+# Forecasting methodology (as implemented in v0.2.0)
 
-**Status: planned for Phase 4. Nothing here is implemented in v0.1.0, and the Forecasting page is a labelled placeholder.**
+Forecasts are **statistical scenarios**, not predictions or price targets. Code: `src/analytics/forecast.ts`, tests in `src/analytics/phase3.test.ts`.
 
-## Intended approach
+## Methods (all on log prices)
 
-- Forecasts are **scenario-based ranges**, not single-point price targets.
-- Methods will be simple, transparent and documented (e.g. statistical baselines, volatility-based ranges, optional fundamental scenarios), each with its assumptions shown.
-- Every forecast will state its inputs, the data it used, its horizon and its limits.
-- **Backtesting first:** a method is only offered if it is evaluated out-of-sample against a naive baseline, and the results (including when it does worse) are displayed.
-- Forecasts will be labelled **Estimated**, never "verified", and will carry the standard disclaimer.
-- No forecast will be produced when data is too short or too stale; the page will say why.
+| Method | Idea |
+| --- | --- |
+| Naive | price stays at the last close (the baseline everything must beat) |
+| 20-day average | reverts towards the recent 20-day mean |
+| Drift | continues the average daily log return |
+| Linear trend | extends a line fitted to the last ~120 log prices |
+| Damped smoothing | Holt-style level and trend, with the trend fading |
+| Ensemble | average of drift, linear trend and damped smoothing |
 
-## Not promised
+ARIMA is **not implemented**: a dependable fit needs an optimiser and diagnostics that were not built or tested here.
 
-No prediction of future prices is guaranteed to be accurate, and the platform will not present forecasts as advice or recommendations.
+## Uncertainty
+
+80% range = base path ± 1.28 × daily volatility × √(days ahead). "Bullish" and "bearish" are only the edges of that range.
+
+## Backtest (walk-forward, no look-ahead)
+
+At each past origin date the method receives only earlier prices and forecasts the horizon ahead; the result is compared with the actual price. Origins step by a third of the horizon, newest ~300 kept. **The method is chosen on the first half of the origins and its metrics are reported on the second half**, so the numbers shown were not used to choose it. Reported: MAE, RMSE, MAPE, directional accuracy, share of outcomes inside the 80% band, and skill = `1 − MAE / MAE(naive)`. A test proves that changing later prices does not change earlier forecasts.
+
+Horizons: 7D = 5 bars, 30D = 21, 90D = 63, 6M = 126, 1Y = 252. Minimum history: 150 daily bars, otherwise no forecast is produced.
+
+## Reliability labels
+
+Never "reliable". `too few tests` (< 15 held-out points), `no demonstrated skill` (no method beat naive, or the 80% band covered < 60% or > 97% of outcomes), or `limited` (beat naive, band roughly calibrated; limited evidence from past data only).
+
+## Known weaknesses
+
+Backtest origins overlap, so independent evidence is less than the count suggests. Exchange holidays are unknown, so future dates only skip weekends. No news, earnings or macro information is used. Dividends and splits are reflected only if the user's prices are adjusted.

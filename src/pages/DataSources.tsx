@@ -9,7 +9,7 @@ const FIELDS: [keyof ProviderDoc, string][] = [
   ['realtimeOrDelayed', 'Real-time / delayed'], ['apiKey', 'API key'], ['rateLimits', 'Rate limits'],
   ['licensing', 'Licensing'], ['redistribution', 'Redistribution'], ['browserAccess', 'Browser access'], ['reliability', 'Reliability'],
 ];
-const STATE_LABEL: Record<ProviderDoc['state'], string> = { integrated: 'Integrated', 'not-integrated': 'Not integrated', planned: 'Planned' };
+const STATE_LABEL: Record<ProviderDoc['state'], string> = { integrated: 'Integrated', experimental: 'Experimental', 'not-integrated': 'Not integrated', planned: 'Planned' };
 
 export function DataSources() {
   const app = useApp();
@@ -20,12 +20,19 @@ export function DataSources() {
       <div className="stack">
         <div className="banner warn">
           <b>Honest status of live data.</b>
-          No free, legitimate, browser-accessible live feed for Bursa Malaysia prices was found that works from a static GitHub Pages site without an API key, a paid proxy or a backend. Rather than scrape an unlicensed source or fake it, Phase 1 runs on files you import. Live providers can be added as adapters without changing any page.
+          No free, legitimate, browser-accessible live feed for Bursa Malaysia prices was found that works from a static GitHub Pages site without an API key, a paid proxy or a backend. Rather than scrape an unlicensed source or fake it, EquityLens runs on files you import. Company financials are typed or imported by you the same way. If you have your own EODHD key you can optionally fetch a year of Bursa history from Settings; that route is experimental and was not tested live.
         </div>
 
         <section className="panel" aria-label="Registered providers">
           <header><h2>Active providers in this build</h2></header>
           <ul className="plain">{PROVIDERS.map((p) => <li key={p.id}><b>{p.name}</b> <span className="muted">({p.id})</span></li>)}</ul>
+        </section>
+
+        <section className="panel" aria-label="Financial statements inventory">
+          <header><h2>Financial statements in this browser</h2></header>
+          {Object.keys(app.state.fundamentalsById).length === 0 ? <p className="muted">None entered. Add them from a company page, under Financials &amp; health.</p> : (
+            <ul className="plain">{Object.values(app.state.fundamentalsById).map((f) => <li key={f.securityId}><b className="num">{nameOf(f.securityId)?.code ?? f.securityId}</b>: {f.periods.length} period(s), {f.source}, saved {f.loadedAt.slice(0, 10)}. <span className="muted">Not verified by EquityLens.</span></li>)}</ul>
+          )}
         </section>
 
         <section className="panel" aria-label="Local data inventory">
@@ -57,7 +64,7 @@ export function DataSources() {
           {PROVIDER_CATALOG.map((p) => (
             <details key={p.id} className="panel" open={p.state === 'integrated'}>
               <summary style={{ cursor: 'pointer' }}>
-                <b>{p.name}</b> <span className={`badge ${p.state === 'integrated' ? 'historical' : 'unavailable'}`}>{STATE_LABEL[p.state]}</span>
+                <b>{p.name}</b> <span className={`badge ${p.state === 'integrated' ? 'historical' : p.state === 'experimental' ? 'estimated' : 'unavailable'}`}>{STATE_LABEL[p.state]}</span>
                 <span className="dim"> · {p.headline}</span>
               </summary>
               <dl className="kv" style={{ marginTop: 10 }}>

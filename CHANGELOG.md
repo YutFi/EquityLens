@@ -2,6 +2,24 @@
 
 All notable changes are recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.2.0] - 2026-11-23
+
+### Added
+- Technical indicators (SMA/EMA, RSI, MACD, Bollinger, ATR, swing support/resistance) with neutral plain-language readings
+- Financial statements entry and CSV import (units selector, strict validation), 20 ratios with formulas and source periods, and a transparent financial-health score
+- Valuation: DCF, same-sector peer multiples, own-history P/E, Gordon dividend model, bank justified P/B; adjustable assumptions; conservative/base/optimistic
+- Forecasting with six simple log-price methods, 80% bands, walk-forward backtest (select on first half, judge on second), naive baseline, honest reliability labels
+- Risk: volatility, drawdown, VaR, downside deviation, beta, fundamental stability, what-if earnings and price-shock sliders
+- Pages: Opportunities, Stock Screener, Valuation, Forecasting, Comparison, Sector Intelligence, Investment Simulator, Watchlist (alerts only while the site is open)
+- Optional, experimental EODHD fetch using the user's own key (untested live; key is stored only in the browser and never exported)
+- Synthetic demo statements for the fictional demo companies
+- Backup now includes statements, portfolios and watchlists
+- `Events & News` and `Research Assistant` listed as not built, with reasons
+
+### Changed
+- Sidebar, methodology, data-source and settings text updated to match what exists
+- Charts for forecasts and comparison are dependency-free SVG with hover read-out
+
 ## [0.1.1] - 2026-11-23
 
 ### Fixed

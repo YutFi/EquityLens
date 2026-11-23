@@ -1,11 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, type ReactNode } from 'react';
 import type { PriceSeries, Security } from '../core/types';
+import type { Fundamentals } from '../core/fundamentals';
+import type { Portfolio } from '../analytics/portfolio';
+import type { Watchlist } from '../analytics/alerts';
 import { SEED_SECURITIES } from '../data/seedDirectory';
-import { generateDemo } from '../data/demoData';
+import { generateDemo, generateDemoFundamentals } from '../data/demoData';
 import { loadFromProviders } from '../data/providers/registry';
 import {
-  clearAllData, DEFAULT_SETTINGS, deleteSeries, isBackup, loadSecurities, loadSettings,
-  saveSecurities, saveSeries, saveSettings, type Backup, type Settings,
+  clearAllData, DEFAULT_SETTINGS, deleteFundamentals, deleteSeries, isBackup, loadAllFundamentals, loadPortfolios, loadSecurities,
+  loadSettings, loadWatchlists, saveFundamentals, savePortfolios, saveSecurities, saveSeries, saveSettings, saveWatchlists,
+  type Backup, type Settings,
 } from '../data/storage';
 
 interface State {
@@ -14,13 +18,20 @@ interface State {
   /** Securities added by the user or generated as demo (the seed directory is merged in at read time). */
   userSecurities: Security[];
   seriesById: Record<string, PriceSeries>;
+  fundamentalsById: Record<string, Fundamentals>;
+  portfolios: Portfolio[];
+  watchlists: Watchlist[];
   failures: { providerId: string; providerName: string; code: string; message: string }[];
   /** Persistent storage problems shown to the user instead of failing silently. */
   storageError: string | null;
 }
 
 type Action =
-  | { type: 'loaded'; securities: Security[]; series: PriceSeries[]; failures: State['failures'] }
+  | { type: 'loaded'; securities: Security[]; series: PriceSeries[]; fundamentals: Fundamentals[]; portfolios: Portfolio[]; watchlists: Watchlist[]; failures: State['failures'] }
+  | { type: 'putFundamentals'; fundamentals: Fundamentals }
+  | { type: 'removeFundamentals'; securityId: string }
+  | { type: 'portfolios'; list: Portfolio[] }
+  | { type: 'watchlists'; list: Watchlist[] }
   | { type: 'settings'; patch: Partial<Settings> }
   | { type: 'putSeries'; security: Security; series: PriceSeries }
   | { type: 'putMany'; securities: Security[]; series: PriceSeries[] }
@@ -33,8 +44,21 @@ function reducer(state: State, action: Action): State {
     case 'loaded': {
       const seriesById: Record<string, PriceSeries> = {};
       for (const s of action.series) seriesById[s.securityId] = s;
-      return { ...state, status: 'ready', userSecurities: action.securities, seriesById, failures: action.failures };
+      const fundamentalsById: Record<string, Fundamentals> = {};
+      for (const f of action.fundamentals) fundamentalsById[f.securityId] = f;
+      return { ...state, status: 'ready', userSecurities: action.securities, seriesById, fundamentalsById, portfolios: action.portfolios, watchlists: action.watchlists, failures: action.failures };
     }
+    case 'putFundamentals':
+      return { ...state, fundamentalsById: { ...state.fundamentalsById, [action.fundamentals.securityId]: action.fundamentals } };
+    case 'removeFundamentals': {
+      const { [action.securityId]: _f, ...rest } = state.fundamentalsById;
+      void _f;
+      return { ...state, fundamentalsById: rest };
+    }
+    case 'portfolios':
+      return { ...state, portfolios: action.list };
+    case 'watchlists':
+      return { ...state, watchlists: action.list };
     case 'settings':
       return { ...state, settings: { ...state.settings, ...action.patch } };
     case 'putSeries':
@@ -54,10 +78,12 @@ function reducer(state: State, action: Action): State {
       void _gone;
       // Demo and imported-only securities disappear with their data; seed securities remain in the directory.
       const userSecurities = state.userSecurities.filter((s) => s.id !== action.securityId);
-      return { ...state, seriesById: rest, userSecurities };
+      const { [action.securityId]: _fund, ...fundRest } = state.fundamentalsById;
+      void _fund;
+      return { ...state, seriesById: rest, fundamentalsById: fundRest, userSecurities };
     }
     case 'reset':
-      return { ...state, userSecurities: [], seriesById: {}, settings: DEFAULT_SETTINGS };
+      return { ...state, userSecurities: [], seriesById: {}, fundamentalsById: {}, portfolios: [], watchlists: [], settings: DEFAULT_SETTINGS };
     case 'storageError':
       return { ...state, storageError: action.message };
   }
@@ -72,6 +98,10 @@ export interface AppApi {
   loadDemo: () => Promise<void>;
   removeData: (securityId: string) => Promise<void>;
   clearEverything: () => Promise<void>;
+  saveFundamentals: (f: Fundamentals) => Promise<void>;
+  removeFundamentals: (securityId: string) => Promise<void>;
+  setPortfolios: (list: Portfolio[]) => Promise<void>;
+  setWatchlists: (list: Watchlist[]) => Promise<void>;
   exportBackup: () => Backup;
   restoreBackup: (b: unknown) => Promise<string | null>;
   hasDemoData: boolean;
@@ -85,6 +115,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     settings: loadSettings(),
     userSecurities: [],
     seriesById: {},
+    fundamentalsById: {},
+    portfolios: [],
+    watchlists: [],
     failures: [],
     storageError: null,
   } satisfies State);
@@ -103,8 +136,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         dispatch({ type: 'storageError', message: `Saved securities could not be read: ${e instanceof Error ? e.message : String(e)}` });
       }
+      let fundamentals: Fundamentals[] = [];
+      let portfolios: Portfolio[] = [];
+      let watchlists: Watchlist[] = [];
+      try {
+        [fundamentals, portfolios, watchlists] = await Promise.all([loadAllFundamentals(), loadPortfolios(), loadWatchlists()]);
+      } catch (e) {
+        dispatch({ type: 'storageError', message: `Saved statements, portfolios or watchlists could not be read: ${e instanceof Error ? e.message : String(e)}` });
+      }
       const report = await loadFromProviders();
-      if (!cancelled) dispatch({ type: 'loaded', securities, series: report.series, failures: report.failures });
+      if (!cancelled) dispatch({ type: 'loaded', securities, series: report.series, fundamentals, portfolios, watchlists, failures: report.failures });
     })();
     return () => { cancelled = true; };
   }, []);
@@ -143,12 +184,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'putMany', securities: demoSec, series });
       const ids = new Set(demoSec.map((s) => s.id));
       const nextUser = [...state.userSecurities.filter((s) => !ids.has(s.id)), ...demoSec];
-      await persist(async () => { for (const s of series) await saveSeries(s); await saveSecurities(nextUser); });
+      const funds = generateDemoFundamentals();
+      for (const f of funds) dispatch({ type: 'putFundamentals', fundamentals: f });
+      await persist(async () => { for (const s of series) await saveSeries(s); await saveSecurities(nextUser); for (const f of funds) await saveFundamentals(f); });
     },
     removeData: async (securityId) => {
       dispatch({ type: 'removeSeries', securityId });
       const nextUser = state.userSecurities.filter((s) => s.id !== securityId);
-      await persist(async () => { await deleteSeries(securityId); await saveSecurities(nextUser); });
+      await persist(async () => { await deleteSeries(securityId); await deleteFundamentals(securityId); await saveSecurities(nextUser); });
+    },
+    saveFundamentals: async (f) => {
+      dispatch({ type: 'putFundamentals', fundamentals: f });
+      await persist(() => saveFundamentals(f));
+    },
+    removeFundamentals: async (securityId) => {
+      dispatch({ type: 'removeFundamentals', securityId });
+      await persist(() => deleteFundamentals(securityId));
+    },
+    setPortfolios: async (list) => {
+      dispatch({ type: 'portfolios', list });
+      await persist(() => savePortfolios(list));
+    },
+    setWatchlists: async (list) => {
+      dispatch({ type: 'watchlists', list });
+      await persist(() => saveWatchlists(list));
     },
     clearEverything: async () => {
       dispatch({ type: 'reset' });
@@ -161,11 +220,24 @@ export function AppProvider({ children }: { children: ReactNode }) {
       settings: state.settings,
       securities: state.userSecurities,
       series: Object.values(state.seriesById),
+      fundamentals: Object.values(state.fundamentalsById),
+      portfolios: state.portfolios,
+      watchlists: state.watchlists,
     }),
     restoreBackup: async (raw) => {
       if (!isBackup(raw)) return 'This file is not an EquityLens backup (version 1).';
       dispatch({ type: 'putMany', securities: raw.securities, series: raw.series });
-      await persist(async () => { for (const s of raw.series) await saveSeries(s); await saveSecurities(raw.securities); });
+      const funds = Array.isArray(raw.fundamentals) ? raw.fundamentals : [];
+      for (const f of funds) dispatch({ type: 'putFundamentals', fundamentals: f });
+      if (Array.isArray(raw.portfolios)) dispatch({ type: 'portfolios', list: raw.portfolios });
+      if (Array.isArray(raw.watchlists)) dispatch({ type: 'watchlists', list: raw.watchlists });
+      await persist(async () => {
+        for (const s of raw.series) await saveSeries(s);
+        await saveSecurities(raw.securities);
+        for (const f of funds) await saveFundamentals(f);
+        if (Array.isArray(raw.portfolios)) await savePortfolios(raw.portfolios);
+        if (Array.isArray(raw.watchlists)) await saveWatchlists(raw.watchlists);
+      });
       return null;
     },
   }), [state, securities, persist]);

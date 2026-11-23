@@ -4,32 +4,39 @@
 
 A free, open-source, no-account stock research and education platform, Malaysia (Bursa) first. It runs entirely in your browser, is hosted as a static site, and uses no paid API, backend or subscription.
 
-> **Status: Phase 1 foundation (v0.1.0).** Only what is listed under "What works today" exists. Everything else is planned and is labelled as planned inside the app. See [`PROJECT_SPEC.md`](PROJECT_SPEC.md) for the full vision and [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) for the honest gaps.
+> **Status: v0.2.0.** Only what is listed under "What works today" exists. Everything else is labelled as not built inside the app. See [`PROJECT_SPEC.md`](PROJECT_SPEC.md) for the full vision and [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) for the honest gaps.
 
 ## Read this first: data
 
-**There is no live Bursa Malaysia price feed in this release.** No free, legitimately usable, browser-accessible source was found that works from a static site without an API key, a paid proxy or a backend (details in [`docs/DATA_PROVIDERS.md`](docs/DATA_PROVIDERS.md)). Rather than scrape an unlicensed source or invent numbers, Phase 1 works with:
+**There is no automatic live Bursa Malaysia price or financial-statement feed in this release, and the app says so.** No free, legitimately usable, browser-accessible source was found that works from a static site without an API key, a paid proxy or a backend (details in [`docs/DATA_PROVIDERS.md`](docs/DATA_PROVIDERS.md)). That is why charts and dashboards only show what you load. Rather than scrape an unlicensed source or invent numbers, EquityLens works with:
 
-1. **Your own data**: import daily OHLCV CSV files you are entitled to use. Stored only in your browser.
-2. **Synthetic demo data**: fictional companies with generated prices so you can explore the interface. Always labelled "Synthetic demo", never presented as market data.
-3. **An unverified seed directory** of well-known Bursa names (code and name only; not the official listing).
+1. **Your own price data**: import daily OHLCV CSV files you are entitled to use. Stored only in your browser.
+2. **Your own financial statements**: type them in from a company's published report, or import a CSV (template provided). Labelled "entered by you", never verified.
+3. **Optional: your own EODHD key** (Settings). Adds a *Fetch from EODHD* button for Bursa companies. **Experimental and untested live**: the build environment could not reach eodhd.com, so CORS and free-plan Bursa coverage are unconfirmed. If it fails you get a plain explanation and CSV import still works.
+4. **Synthetic demo data**: fictional companies with generated prices *and generated statements* so every page can be explored. Always labelled synthetic, never presented as market data.
+5. **An unverified seed directory** of well-known Bursa names (code and name only; not the official listing).
 
-Nothing in the app is labelled "verified" in this release.
+Nothing in the app is labelled "verified".
 
 ## What works today
 
-- Dark/light terminal-style interface, Beginner and Advanced modes, responsive layout
-- Market selector (Bursa active; NASDAQ, NYSE, SGX, HKEX, LSE are configured but planned for Phase 7)
-- Company search and a browsable security directory
-- CSV import with strict validation, a visible error report, no silent repair
-- Overview and Markets dashboards computed only from the data you loaded: index card, breadth, movers, unusual volume, volatility, a traded-value heatmap and a rule-based, non-causal summary
-- Company page: candlestick + volume chart (daily/weekly/monthly, range buttons, optional adjusted prices when the file supplies them), plain-language history description, data-quality panel
-- A data-status badge and a data-quality panel for every dataset
-- Backup/restore of local data, clear-all, no tracking
+Everything below runs on the data you have loaded, in your browser. Each calculation is unit-tested and documented in [`docs/FORMULAS.md`](docs/FORMULAS.md).
+
+- **Overview / Markets / Discover**: index card, breadth, movers, unusual volume, volatility, traded-value heatmap, rule-based non-causal summary, security directory
+- **Company Research** (tabs): candlestick chart; moving averages, Bollinger bands, RSI, MACD, ATR, support and resistance with plain-language readings; financial statements, 20 ratios with formulas, and a transparent 0-100 financial-health score; valuation (DCF, peers, own history, dividend model, bank P/B) with editable assumptions; statistical forecast with walk-forward backtest; risk metrics and what-if sliders
+- **Valuation / Forecasting**: the same tools for any loaded company
+- **Opportunities** and **Stock Screener**: rule-based research-priority scanner (undervalued, growth, dividend, momentum, recovery, warning signals) with visible criteria and "no data" handled separately from "failed"; filters across price, valuation, growth, yield, health and risk
+- **Comparison** (up to 5 companies, rebased chart + metrics), **Sector Intelligence** (medians of loaded companies), **Investment Simulator** (hypothetical portfolios, average cost, realised/unrealised P/L, user-entered dividends), **Watchlist** with alert rules (checked only while the site is open)
+- CSV import with strict validation; backup/restore (prices, statements, portfolios, watchlists); clear-all; no tracking; dark/light; Beginner/Advanced; responsive
 
 ## What is not built
 
-Financial statements and ratios, financial-health scoring, valuation, technical indicators, forecasting, backtesting, opportunity scanner, screener, news/announcements, comparison, sector intelligence, simulator, watchlist and alerts, other exchanges. These pages exist only as labelled placeholders. See the roadmap in `PROJECT_SPEC.md`.
+- **Company events, announcements and news**: no free licensed Bursa feed; nothing is invented.
+- **Research assistant**: needs a language-model service, which conflicts with the no-account/no-paid-API rules.
+- ARIMA (deliberately omitted), automatic financial statements, real-time prices, other exchanges (NASDAQ, NYSE, SGX, HKEX, LSE are configured but not built).
+- Cross-company analysis covers only companies you have loaded, never "the market".
+
+Forecasts, valuations and scores are estimates from simple models. In testing on synthetic prices, the forecast page frequently reports that no method beat the naive baseline; that is the intended honest outcome, not a bug.
 
 ## Quick start
 
@@ -58,7 +65,7 @@ Make sure you have the right to use the data you import. Many vendors forbid red
 | [`docs/DATA_PROVIDERS.md`](docs/DATA_PROVIDERS.md) | Source investigation and findings |
 | [`docs/DATA_LICENSING.md`](docs/DATA_LICENSING.md) | Licensing and redistribution notes |
 | [`docs/FORMULAS.md`](docs/FORMULAS.md) | Every calculation currently implemented |
-| [`docs/FORECASTING.md`](docs/FORECASTING.md) | Forecasting methodology (planned, not implemented) |
+| [`docs/FORECASTING.md`](docs/FORECASTING.md) | Forecasting methodology as implemented |
 | [`docs/INSTALLATION.md`](docs/INSTALLATION.md), [`DEVELOPMENT.md`](docs/DEVELOPMENT.md), [`DEPLOYMENT.md`](docs/DEPLOYMENT.md) | Setup, workflow, GitHub Pages |
 | [`docs/KNOWN_LIMITATIONS.md`](docs/KNOWN_LIMITATIONS.md) | What this release cannot do |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md), [`CHANGELOG.md`](CHANGELOG.md) | Contributing and release notes |

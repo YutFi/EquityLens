@@ -1,5 +1,6 @@
 import type { Bar, PriceSeries, Security } from '../core/types';
 import { addDays, parseISODate, toISODate } from '../core/dates';
+import type { Fundamentals, StatementPeriod } from '../core/fundamentals';
 import { assessSeries } from './quality';
 
 /**
@@ -101,4 +102,56 @@ export function generateDemo(now: Date = new Date()): { securities: Security[]; 
     });
   }
   return { securities, series };
+}
+
+/**
+ * Fictional statements for the fictional demo companies, so the ratio, health, valuation and
+ * scanner pages can be explored. Deterministic, invented, and labelled as synthetic everywhere
+ * they are stored. DEMO6 is treated as a financial institution and DEMO7 is deliberately weak.
+ */
+const DEMO_FIN: Record<string, { shares: number; rev: number; growth: number; margin: number; debt: number; equityRatio: number; payout: number; financial?: boolean; weak?: boolean }> = {
+  DEMO1: { shares: 900e6, rev: 4200e6, growth: 0.07, margin: 0.14, debt: 0.5e9, equityRatio: 0.55, payout: 0.4 },
+  DEMO2: { shares: 1200e6, rev: 2600e6, growth: 0.03, margin: 0.09, debt: 0.9e9, equityRatio: 0.45, payout: 0.55 },
+  DEMO3: { shares: 2000e6, rev: 3100e6, growth: -0.02, margin: 0.03, debt: 1.8e9, equityRatio: 0.3, payout: 0.3 },
+  DEMO4: { shares: 3500e6, rev: 1500e6, growth: 0.15, margin: 0.11, debt: 0.4e9, equityRatio: 0.6, payout: 0.1 },
+  DEMO5: { shares: 400e6, rev: 3800e6, growth: 0.05, margin: 0.17, debt: 0.2e9, equityRatio: 0.7, payout: 0.6 },
+  DEMO6: { shares: 1600e6, rev: 2900e6, growth: 0.06, margin: 0.28, debt: 0, equityRatio: 0.09, payout: 0.5, financial: true },
+  DEMO7: { shares: 1800e6, rev: 2400e6, growth: -0.08, margin: -0.02, debt: 2.2e9, equityRatio: 0.25, payout: 0, weak: true },
+  DEMO8: { shares: 5000e6, rev: 900e6, growth: 0.12, margin: 0.06, debt: 0.5e9, equityRatio: 0.5, payout: 0.2 },
+};
+
+export function generateDemoFundamentals(now: Date = new Date()): Fundamentals[] {
+  const year = now.getUTCFullYear();
+  const out: Fundamentals[] = [];
+  for (const [code, d] of Object.entries(DEMO_FIN)) {
+    const rand = mulberry32(code.charCodeAt(code.length - 1) * 977);
+    const periods: StatementPeriod[] = [];
+    for (let i = 0; i < 4; i++) {
+      const y = year - 4 + i; // last four completed calendar years
+      const rev = d.rev * Math.pow(1 + d.growth, i - 3) * (1 + 0.02 * (rand() - 0.5));
+      const m = d.margin + 0.01 * (rand() - 0.5);
+      const ni = rev * m;
+      const opInc = d.financial ? ni * 1.3 : ni * 1.35 + (d.debt > 0 ? d.debt * 0.04 : 0);
+      const assets = d.financial ? rev * 12 : rev * 0.9;
+      const equity = assets * d.equityRatio;
+      const debt = d.debt * (1 + 0.03 * (i - 3));
+      const ocf = d.financial ? ni * 1.1 : ni + rev * 0.04;
+      const r = (n: number) => Math.round(n);
+      periods.push({
+        periodEnd: `${y}-12-31`, kind: 'annual',
+        revenue: r(rev), costOfRevenue: d.financial ? undefined : r(rev * 0.62), operatingIncome: r(opInc), interestExpense: debt > 0 ? r(debt * 0.04) : undefined,
+        netIncome: r(ni), eps: Math.round((ni / d.shares) * 10000) / 10000,
+        dividendsPerShare: d.payout > 0 && ni > 0 ? Math.round(((ni * d.payout) / d.shares) * 10000) / 10000 : 0,
+        totalAssets: r(assets), totalLiabilities: r(assets - equity), equity: r(equity),
+        currentAssets: d.financial ? undefined : r(rev * 0.3), currentLiabilities: d.financial ? undefined : r(rev * (d.weak ? 0.36 : 0.2)), inventory: d.financial ? undefined : r(rev * 0.05),
+        totalDebt: d.financial ? undefined : r(debt), cash: r(rev * 0.06), operatingCashFlow: r(ocf), capex: d.financial ? undefined : r(rev * 0.035),
+      });
+    }
+    out.push({
+      securityId: `XKLS:${code}`, currency: 'MYR', sharesOutstanding: d.shares, isFinancial: !!d.financial, periods,
+      source: 'Synthetic demo statements (FICTIONAL, not real financials)', loadedAt: now.toISOString(),
+      notes: ['Invented for the fictional demo companies so the analysis pages can be explored.'],
+    });
+  }
+  return out;
 }

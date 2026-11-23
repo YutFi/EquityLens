@@ -1,5 +1,8 @@
 import { createStore, del, entries, get, set, clear } from 'idb-keyval';
 import type { AnalysisLevel, MarketId, PriceSeries, Security, ThemeKey } from '../core/types';
+import type { Fundamentals } from '../core/fundamentals';
+import type { Portfolio } from '../analytics/portfolio';
+import type { Watchlist } from '../analytics/alerts';
 
 /**
  * Local-first persistence. Everything stays in this browser: series and added securities live in
@@ -9,6 +12,9 @@ import type { AnalysisLevel, MarketId, PriceSeries, Security, ThemeKey } from '.
 const store = createStore('equitylens', 'kv');
 const SERIES_PREFIX = 'series:';
 const SECURITIES_KEY = 'securities';
+const FUND_PREFIX = 'fund:';
+const PORTFOLIOS_KEY = 'portfolios';
+const WATCHLISTS_KEY = 'watchlists';
 const SETTINGS_KEY = 'equitylens.settings.v1';
 
 export interface Settings {
@@ -63,10 +69,35 @@ export async function loadSecurities(): Promise<Security[]> {
   return (await get<Security[]>(SECURITIES_KEY, store)) ?? [];
 }
 
+export async function saveFundamentals(f: Fundamentals): Promise<void> {
+  await set(FUND_PREFIX + f.securityId, f, store);
+}
+export async function deleteFundamentals(securityId: string): Promise<void> {
+  await del(FUND_PREFIX + securityId, store);
+}
+export async function loadAllFundamentals(): Promise<Fundamentals[]> {
+  const all = await entries<string, Fundamentals>(store);
+  return all.filter(([k]) => k.startsWith(FUND_PREFIX)).map(([, v]) => v);
+}
+export async function savePortfolios(list: Portfolio[]): Promise<void> {
+  await set(PORTFOLIOS_KEY, list, store);
+}
+export async function loadPortfolios(): Promise<Portfolio[]> {
+  return (await get<Portfolio[]>(PORTFOLIOS_KEY, store)) ?? [];
+}
+export async function saveWatchlists(list: Watchlist[]): Promise<void> {
+  await set(WATCHLISTS_KEY, list, store);
+}
+export async function loadWatchlists(): Promise<Watchlist[]> {
+  return (await get<Watchlist[]>(WATCHLISTS_KEY, store)) ?? [];
+}
+
 export async function clearAllData(): Promise<void> {
   await clear(store);
   try {
     localStorage.removeItem(SETTINGS_KEY);
+    // The optional EODHD key is a credential, so "clear everything" removes it too.
+    localStorage.removeItem('equitylens.eodhd.key');
   } catch {
     /* ignore */
   }
@@ -79,6 +110,10 @@ export interface Backup {
   settings: Settings;
   securities: Security[];
   series: PriceSeries[];
+  /** Added in v0.2.0; older backups simply lack these. The EODHD key is never exported. */
+  fundamentals?: Fundamentals[];
+  portfolios?: Portfolio[];
+  watchlists?: Watchlist[];
 }
 
 export function isBackup(x: unknown): x is Backup {

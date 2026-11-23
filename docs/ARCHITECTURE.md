@@ -14,10 +14,13 @@ src/
   core/        types, market configuration, market status, date + format helpers
   data/        csv import, aggregation, quality assessment, storage, demo data,
                seed directory, provider interface + registry + catalog
-  analytics/   returns, volatility, drawdown, market view, treemap, summaries
-  state/       AppContext (reducer, import/backup/restore actions)
+  analytics/   returns, market view, treemap, summaries, indicators, ratios, health, valuation,
+               forecast, risk, metrics (per-company rollup), opportunities, sectors, portfolio, alerts
+  state/       AppContext (reducer; prices, statements, portfolios, watchlists), useMetrics
   components/  Layout, PriceChart, Heatmap, DataTable, ImportDialog, badges, Disclaimer
-  pages/       Overview, Markets, Discover, Company, Methodology, DataSources, Settings, Planned
+  components/research/  Technicals, Financials, Valuation, Forecast, Risk panels (used by Company and top-level pages)
+  pages/       Overview, Markets, Discover, Company, Valuation, Forecasting, Opportunities, Screener,
+               Comparison, Sectors, Simulator, Watchlist, Methodology, DataSources, Settings, Planned
   nav.ts       navigation with live/planned status
 ```
 
@@ -31,7 +34,7 @@ src/
 interface PriceProvider { id: string; name: string; load(): Promise<ProviderResult> }
 ```
 
-`loadFromProviders` uses `Promise.allSettled`, so one failing provider degrades to a notice rather than a crash. Only the local provider is registered in v0.1.0. To add one, see `CONTRIBUTING.md`.
+`loadFromProviders` uses `Promise.allSettled`, so one failing provider degrades to a notice rather than a crash. Only the local provider is registered. EODHD is an optional on-demand fetch (user key), not a registered provider. To add one, see `CONTRIBUTING.md`.
 
 ## Routing and deployment
 
@@ -39,7 +42,7 @@ interface PriceProvider { id: string; name: string; load(): Promise<ProviderResu
 
 ## Charts
 
-TradingView Lightweight Charts v5 (candlestick + histogram series), attribution logo enabled.
+TradingView Lightweight Charts v5 for the candlestick view (attribution logo enabled). Forecast, indicator and comparison charts use a small dependency-free SVG `LineChart`.
 
 ## Testing
 

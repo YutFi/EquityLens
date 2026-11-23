@@ -7,7 +7,7 @@
 export interface ProviderDoc {
   id: string;
   name: string;
-  state: 'integrated' | 'not-integrated' | 'planned';
+  state: 'integrated' | 'experimental' | 'not-integrated' | 'planned';
   headline: string;
   availableData: string;
   coverage: string;
@@ -105,14 +105,30 @@ export const PROVIDER_CATALOG: ProviderDoc[] = [
     reliability: 'High for filings.',
   },
   {
-    id: 'keyed-vendors',
-    name: 'Keyed vendors (e.g. EODHD, Twelve Data, Alpha Vantage)',
+    id: 'eodhd',
+    name: 'EOD Historical Data (EODHD): optional, bring your own key',
+    state: 'experimental',
+    headline: 'The only route found that lists Bursa (.KLSE) symbols; needs your own key; not tested live from here.',
+    availableData: 'End-of-day open, high, low, close, adjusted close and volume as JSON (documented endpoint /api/eod/{code}.KLSE).',
+    coverage: 'Vendor documentation lists the KLSE exchange. Whether the free plan returns every Bursa counter was not verified.',
+    updateFrequency: 'End of day.',
+    realtimeOrDelayed: 'End-of-day history only.',
+    apiKey: 'Required. EquityLens never ships a key; you paste your own in Settings and it stays in your browser.',
+    rateLimits: 'Documented for the free plan: about 20 requests per day, last 12 months of history.',
+    licensing: 'Free plan is documented as personal use. Check the vendor terms for your use.',
+    redistribution: 'Not permitted on the free plan as documented. EquityLens never uploads or commits fetched data.',
+    browserAccess: 'Not verified: CORS behaviour could not be tested because the build environment cannot reach eodhd.com. Failures are reported plainly.',
+    reliability: 'Not verified. Data is labelled "your key" and never "verified".',
+  },
+  {
+    id: 'other-keyed-vendors',
+    name: 'Other keyed vendors (Twelve Data, Alpha Vantage)',
     state: 'not-integrated',
-    headline: 'Require API keys; excluded by the no-mandatory-key rule.',
+    headline: 'Bursa coverage is paid-plan or unconfirmed. Not integrated.',
     availableData: 'Prices and fundamentals through documented APIs.',
-    coverage: 'Some list Bursa Malaysia instruments; free-tier coverage not verified.',
+    coverage: 'Twelve Data lists Bursa (XKLS) with a 15-minute delay, but on a paid plan. No evidence of Bursa coverage was found for Alpha Vantage.',
     updateFrequency: 'Varies by plan.',
-    realtimeOrDelayed: 'Varies by plan.',
+    realtimeOrDelayed: 'Delayed on paid plans.',
     apiKey: 'Required.',
     rateLimits: 'Plan-dependent; free tiers are small.',
     licensing: 'Per-vendor terms; free tiers are usually personal use.',

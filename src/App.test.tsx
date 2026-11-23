@@ -17,10 +17,33 @@ describe('App smoke test', () => {
     expect(screen.getAllByText(/Overview/).length).toBeGreaterThan(0);
   });
 
-  it('marks planned features as planned, not available', async () => {
-    window.location.hash = '#/valuation';
+  it('marks unbuilt features as planned, not available', async () => {
+    window.location.hash = '#/events';
     render(<App />);
     await waitFor(() => expect(screen.getAllByText(/planned/i).length).toBeGreaterThan(0));
+    expect(screen.getAllByText(/no free licensed/i).length).toBeGreaterThan(0);
+  });
+
+  it.each(['valuation', 'forecasting', 'opportunities', 'screener', 'comparison', 'sectors', 'simulator', 'watchlist'])(
+    'renders the %s page with an honest empty state when nothing is loaded',
+    async (route) => {
+      window.location.hash = `#/${route}`;
+      render(<App />);
+      await waitFor(() => expect(screen.getAllByText(/no companies with data yet|no simulated portfolio yet|no watchlist yet/i).length).toBeGreaterThan(0));
+    },
+  );
+
+  it('runs every analysis page on synthetic demo data without crashing', async () => {
+    window.location.hash = '#/settings';
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(await screen.findByRole('button', { name: /load synthetic demo data/i }));
+    for (const route of ['opportunities', 'screener', 'sectors', 'valuation', 'comparison']) {
+      window.location.hash = `#/${route}`;
+      await waitFor(() => expect(screen.queryAllByText(/no companies with data yet/i)).toHaveLength(0), { timeout: 4000 });
+    }
+    window.location.hash = '#/forecasting';
+    expect(await screen.findByText(/A statistical scenario, not a prediction/i)).toBeInTheDocument();
   });
 
   it('explains data sources honestly', async () => {
