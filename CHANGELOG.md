@@ -10,6 +10,9 @@ All notable changes are recorded here. Format follows [Keep a Changelog](https:/
 - `docs/MOOMOO_BRIDGE.md` with costs, setup, safety model and what is not verified; provider catalog entry
 - Python unit tests for the bridge (CI job) and TypeScript tests for the client and polling hook
 
+### Changed
+- README now links to the hosted app and has step-by-step instructions for using the app, setting it up locally, publishing a copy on GitHub Pages, the optional Moomoo bridge, and troubleshooting
+
 ### Safety
 - Moomoo data is never labelled "verified"; mock-bridge data is labelled synthetic and cannot overwrite real stored data
 - The app refuses non-loopback bridge addresses; the bridge binds to loopback, checks Host and Origin, and contains no trading code
