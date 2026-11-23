@@ -6,7 +6,21 @@ import type { MarketId } from '../core/types';
 import { NAV } from '../nav';
 import { useApp } from '../state/AppContext';
 import { Disclaimer } from './Disclaimer';
+import { Icon, LogoMark } from './Icon';
 import { ImportDialog } from './ImportDialog';
+
+const NAV_GROUPS: { title: string; paths: string[] }[] = [
+  { title: 'Workspace', paths: ['/', '/markets', '/discover', '/company'] },
+  { title: 'Analysis', paths: ['/opportunities', '/screener', '/valuation', '/forecasting', '/comparison', '/sectors'] },
+  { title: 'Tools', paths: ['/simulator', '/watchlist'] },
+  { title: 'Platform', paths: ['/methodology', '/data-sources', '/settings'] },
+];
+const ICONS: Record<string, string> = {
+  '/': 'overview', '/markets': 'markets', '/discover': 'discover', '/company': 'company', '/opportunities': 'opportunities',
+  '/screener': 'screener', '/valuation': 'valuation', '/forecasting': 'forecasting', '/comparison': 'comparison',
+  '/sectors': 'sectors', '/simulator': 'simulator', '/watchlist': 'watchlist', '/methodology': 'methodology',
+  '/data-sources': 'sources', '/settings': 'settings',
+};
 
 interface ImportUi { openImport: (securityId?: string) => void }
 const ImportCtx = createContext<ImportUi>({ openImport: () => undefined });
@@ -29,6 +43,17 @@ function SearchBox() {
       .slice(0, 8);
   }, [q, app.securities, app.state.settings.market]);
 
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement | null;
+      const typing = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
+      if (e.key === '/' && !typing && !e.metaKey && !e.ctrlKey) { e.preventDefault(); input.current?.focus(); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
   useEffect(() => {
     const onDoc = (e: MouseEvent) => { if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false); };
     document.addEventListener('mousedown', onDoc);
@@ -38,10 +63,12 @@ function SearchBox() {
   const go = (id: string) => { setQ(''); setOpen(false); nav(`/company/${encodeURIComponent(id)}`); };
 
   return (
-    <div className="grow" ref={wrap}>
+    <div className="grow search-wrap" ref={wrap}>
       <label className="sr-only" htmlFor="global-search">Search companies by name or code</label>
+      <Icon name="search" size={16} />
       <input
-        id="global-search" className="input" placeholder="Search company name or code…" autoComplete="off"
+        ref={input}
+        id="global-search" className="input" placeholder="Search company or code…" autoComplete="off"
         role="combobox" aria-expanded={open && results.length > 0} aria-controls="search-list"
         value={q}
         onChange={(e) => { setQ(e.target.value); setOpen(true); setActive(0); }}
@@ -53,6 +80,7 @@ function SearchBox() {
           else if (e.key === 'Escape') setOpen(false);
         }}
       />
+      {!q && <span className="kbd" aria-hidden="true">/</span>}
       {open && q.trim() && (
         <div className="search-results" id="search-list" role="listbox">
           {results.length === 0 && <div className="muted" style={{ padding: 10 }}>No match in the directory. Import data to add a security.</div>}
@@ -71,7 +99,7 @@ function SearchBox() {
 function MarketSelector() {
   const app = useApp();
   return (
-    <label className="field" style={{ gridAutoFlow: 'column', alignItems: 'center', gap: 8 }}>
+    <label className="field market-sel" style={{ gridAutoFlow: 'column', alignItems: 'center', gap: 8 }}>
       <span className="sr-only">Market</span>
       <select
         className="input" aria-label="Market" value={app.state.settings.market}
@@ -105,35 +133,57 @@ export function Layout() {
       <a className="skip" href="#main">Skip to content</a>
       <div className="shell">
         <aside className={`sidebar${menu ? ' open' : ''}`} aria-label="Primary">
-          <div className="brand"><b>EQUITYLENS</b><small>See Beyond the Stock Price.</small></div>
-          <ul className="nav">
-            {NAV.map((n) => (
-              <li key={n.path}>
-                <NavLink to={n.path} end={n.path === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
-                  <span>{n.label}</span>
-                  {n.status === 'planned' && <span className="tag" title="Not built yet">{n.phase ? `Phase ${n.phase}` : 'Planned'}</span>}
-                </NavLink>
-              </li>
+          <div className="brand">
+            <LogoMark />
+            <div><b>EquityLens</b><small>See Beyond the Stock Price.</small></div>
+          </div>
+          <nav aria-label="Main">
+            {NAV_GROUPS.map((g) => (
+              <div className="nav-group" key={g.title}>
+                <p className="nav-title">{g.title}</p>
+                <ul className="nav">
+                  {g.paths.map((path) => {
+                    const n = NAV.find((x) => x.path === path);
+                    if (!n) return null;
+                    return (
+                      <li key={n.path}>
+                        <NavLink to={n.path} end={n.path === '/'} className={({ isActive }) => `${isActive ? 'active' : ''}${n.status === 'planned' ? ' is-planned' : ''}`}>
+                          <Icon name={ICONS[n.path] ?? 'overview'} />
+                          <span className="label">{n.label}</span>
+                          {n.status === 'planned' && <span className="tag" title="Not built yet">{n.phase ? `Phase ${n.phase}` : 'Planned'}</span>}
+                        </NavLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
             ))}
-          </ul>
-          <div className="sidebar-foot">v0.1.0 · Phase 1 foundation<br />Research &amp; education only.</div>
+          </nav>
+          <div className="sidebar-foot">v0.1.1 · Phase 1 foundation<br />Research &amp; education only.</div>
         </aside>
 
         <header className="header">
-          <button type="button" className="btn menu-btn" aria-label="Toggle navigation" aria-expanded={menu} onClick={() => setMenu((m) => !m)}>☰</button>
-          <MarketSelector />
+          <button type="button" className="btn icon-only menu-btn" aria-label="Toggle navigation" aria-expanded={menu} onClick={() => setMenu((m) => !m)}><Icon name="menu" /></button>
           <SearchBox />
-          <span className="muted" title={status.holidayCaveat ? 'Exchange holidays are not included in this status.' : ''}>
-            {market.shortName} {status.localTime} · {status.label}
-          </span>
-          <div className="seg" role="group" aria-label="Analysis level">
-            <button type="button" aria-pressed={app.state.settings.level === 'beginner'} onClick={() => app.setSettings({ level: 'beginner' })}>Beginner</button>
-            <button type="button" aria-pressed={app.state.settings.level === 'advanced'} onClick={() => app.setSettings({ level: 'advanced' })}>Advanced</button>
+          <div className="header-right">
+            <MarketSelector />
+            <span className="status-pill" title={status.holidayCaveat ? 'Exchange holidays are not included in this status.' : ''}>
+              <span className={`dot${status.state === 'open' ? ' open' : ''}`} aria-hidden="true" />
+              {market.shortName} {status.localTime} · {status.label}
+            </span>
+            <div className="seg" role="group" aria-label="Analysis level">
+              <button type="button" aria-pressed={app.state.settings.level === 'beginner'} onClick={() => app.setSettings({ level: 'beginner' })}>Beginner</button>
+              <button type="button" aria-pressed={app.state.settings.level === 'advanced'} onClick={() => app.setSettings({ level: 'advanced' })}>Advanced</button>
+            </div>
+            <button
+              type="button" className="btn icon-only theme-btn" title={`Switch to ${app.state.settings.theme === 'dark' ? 'light' : 'dark'} theme`}
+              onClick={() => app.setSettings({ theme: app.state.settings.theme === 'dark' ? 'light' : 'dark' })}
+              aria-label={`Switch to ${app.state.settings.theme === 'dark' ? 'light' : 'dark'} theme`}
+            >
+              <Icon name={app.state.settings.theme === 'dark' ? 'sun' : 'moon'} />
+            </button>
+            <button type="button" className="btn primary" onClick={() => setImporting({})}><Icon name="upload" size={16} />Import data</button>
           </div>
-          <button type="button" className="btn" onClick={() => app.setSettings({ theme: app.state.settings.theme === 'dark' ? 'light' : 'dark' })} aria-label={`Switch to ${app.state.settings.theme === 'dark' ? 'light' : 'dark'} theme`}>
-            {app.state.settings.theme === 'dark' ? '☀ Light' : '☾ Dark'}
-          </button>
-          <button type="button" className="btn primary" onClick={() => setImporting({})}>Import data</button>
         </header>
 
         <main className="main" id="main" tabIndex={-1}>

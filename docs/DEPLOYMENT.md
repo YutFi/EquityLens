@@ -1,6 +1,6 @@
 # Deployment (GitHub Pages)
 
-The repository includes `.github/workflows/deploy.yml`, which builds with Node 20, runs typecheck and tests, and publishes `dist/` to GitHub Pages on every push to `main`.
+The repository includes `.github/workflows/deploy.yml`, which builds with Node 22, runs typecheck and tests, and publishes `dist/` to GitHub Pages on every push to `main`.
 
 ## One-time setup
 

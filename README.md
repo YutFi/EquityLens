@@ -42,7 +42,7 @@ npm test         # unit and smoke tests
 npm run build    # production build in dist/
 ```
 
-Requires Node.js 20+. See [`docs/INSTALLATION.md`](docs/INSTALLATION.md).
+Requires Node.js 22+. See [`docs/INSTALLATION.md`](docs/INSTALLATION.md).
 
 ## Importing your data
 

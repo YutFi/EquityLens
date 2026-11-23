@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Node.js 20 or newer and npm
+- Node.js 22 or newer and npm
 - A modern browser (current Chrome, Edge, Firefox or Safari)
 
 ## Steps

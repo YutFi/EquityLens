@@ -28,6 +28,13 @@ export function PriceChart({ bars, currency, showVolume, label }: Props) {
   const candleRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const volRef = useRef<ISeriesApi<'Histogram'> | null>(null);
   const [legend, setLegend] = useState<string>('');
+  // Chart colours are read from CSS variables, so rebuild the chart whenever the theme attribute changes.
+  const [themeTick, setThemeTick] = useState(0);
+  useEffect(() => {
+    const obs = new MutationObserver(() => setThemeTick((n) => n + 1));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    return () => obs.disconnect();
+  }, []);
 
   useEffect(() => {
     if (!box.current) return;
@@ -37,17 +44,17 @@ export function PriceChart({ bars, currency, showVolume, label }: Props) {
     const neg = cssVar('--neg') || '#f4605c';
     const chart = createChart(box.current, {
       autoSize: true,
-      layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: text, fontFamily: 'ui-monospace, Menlo, Consolas, monospace' },
-      grid: { vertLines: { color: grid }, horzLines: { color: grid } },
-      rightPriceScale: { borderColor: grid },
-      timeScale: { borderColor: grid, timeVisible: false },
-      crosshair: { mode: CrosshairMode.Normal },
+      layout: { background: { type: ColorType.Solid, color: 'transparent' }, textColor: text, fontFamily: "'Inter Variable', Inter, system-ui, sans-serif", fontSize: 12 },
+      grid: { vertLines: { visible: false }, horzLines: { color: grid } },
+      rightPriceScale: { borderVisible: false, scaleMargins: { top: 0.06, bottom: 0.22 } },
+      timeScale: { borderVisible: false, timeVisible: false, rightOffset: 4 },
+      crosshair: { mode: CrosshairMode.Normal, vertLine: { color: text, width: 1, style: 3, labelBackgroundColor: cssVar('--raised') || '#131a2b' }, horzLine: { color: text, width: 1, style: 3, labelBackgroundColor: cssVar('--raised') || '#131a2b' } },
     });
     const candles = chart.addSeries(CandlestickSeries, {
       upColor: pos, downColor: neg, borderUpColor: pos, borderDownColor: neg, wickUpColor: pos, wickDownColor: neg,
     });
     const vol = chart.addSeries(HistogramSeries, { priceFormat: { type: 'volume' }, priceScaleId: 'vol', lastValueVisible: false, priceLineVisible: false });
-    chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.82, bottom: 0 } });
+    chart.priceScale('vol').applyOptions({ scaleMargins: { top: 0.84, bottom: 0 } });
     chartRef.current = chart;
     candleRef.current = candles;
     volRef.current = vol;
@@ -62,7 +69,7 @@ export function PriceChart({ bars, currency, showVolume, label }: Props) {
       chart.remove();
       chartRef.current = null; candleRef.current = null; volRef.current = null;
     };
-  }, []);
+  }, [themeTick]);
 
   useEffect(() => {
     const candles = candleRef.current;
@@ -77,7 +84,7 @@ export function PriceChart({ bars, currency, showVolume, label }: Props) {
         : [],
     );
     chartRef.current.timeScale().fitContent();
-  }, [bars, showVolume]);
+  }, [bars, showVolume, themeTick]);
 
   return (
     <div className="chart-box" role="img" aria-label={`${label}. Candlestick chart in ${currency}, ${bars.length} bars.`}>

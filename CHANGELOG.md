@@ -2,6 +2,16 @@
 
 All notable changes are recorded here. Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.1] - 2026-11-23
+
+### Fixed
+- GitHub Pages deployment: CI failed because jsdom 31 needs a newer Node than the Node 20 configured. CI now uses Node 22 and `package.json` declares `engines.node >= 22`.
+- Price chart kept its original colours after switching theme; it now rebuilds on theme change.
+
+### Changed
+- Visual redesign: layered "ink and glass" surfaces, ambient gradient, Inter (bundled locally), grouped sidebar with icons, search shortcut (`/`), live market-status pill, pill-style controls, refined tables, improved heatmap, polished light theme and mobile header.
+- Added sparklines (benchmark, company, movers table) and an advancing/declining breadth bar. All are drawn only from loaded data.
+
 ## [0.1.0] - 2026-11-23
 
 Phase 1 foundation. First release.

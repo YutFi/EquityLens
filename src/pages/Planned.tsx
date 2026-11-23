@@ -8,7 +8,7 @@ export function Planned() {
   const item = NAV.find((n) => n.path === pathname);
   return (
     <Page title={item?.label ?? 'Planned feature'} subtitle={item?.phase ? `Planned for Phase ${item.phase}` : 'Planned; not yet assigned to a phase'}>
-      <div className="panel">
+      <div className="panel" style={{ maxWidth: 820 }}>
         <div className="banner warn"><b>Not built yet.</b>This page is a placeholder. No feature here works, and no data is shown.</div>
         {item?.scope && (
           <>

@@ -5,6 +5,7 @@ import { annualisedVolatility, maxDrawdown, pctChange, periodReturn, PERIODS } f
 import { Page, useImportDialog } from '../components/Layout';
 import { PriceChart } from '../components/PriceChart';
 import { QualityBadge, QualityPanel } from '../components/QualityBadge';
+import { Sparkline } from '../components/Sparkline';
 import { arrow, fmtCompact, fmtNumber, fmtPct, fmtPrice, signClass } from '../core/format';
 import { MARKETS } from '../core/markets';
 import type { IntervalKey, RangeKey } from '../core/types';
@@ -98,10 +99,11 @@ export function CompanyPage() {
           )}
 
           <section className="grid cols-4" aria-label="Price summary">
-            <div className="panel stat">
+            <div className="panel stat hero">
               <div className="label">Latest close</div>
               <div className="value">{fmtPrice(last?.c, sec.currency)}</div>
               <div className={`sub ${signClass(change)}`}>{arrow(change)} {fmtNumber(change, 3)} ({fmtPct(changePct)}) · {last?.t}</div>
+              <div className="spark-slot"><Sparkline area width={110} height={44} values={all.slice(-60).map((b) => b.c)} /></div>
             </div>
             <div className="panel stat">
               <div className="label">{hasFullYear ? '52-week' : 'Loaded-range'} high / low</div>

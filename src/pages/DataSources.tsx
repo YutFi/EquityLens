@@ -72,6 +72,7 @@ export function DataSources() {
           <ul className="plain">
             <li><a href="https://github.com/tradingview/lightweight-charts" target="_blank" rel="noreferrer noopener">TradingView Lightweight Charts™</a> (Apache-2.0): price charts, with its attribution logo displayed.</li>
             <li>React, React Router, idb-keyval (MIT).</li>
+            <li>Inter typeface by Rasmus Andersson (SIL Open Font License 1.1), bundled locally via Fontsource, so no font requests leave your browser.</li>
           </ul>
         </section>
       </div>

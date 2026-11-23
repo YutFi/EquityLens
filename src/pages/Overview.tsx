@@ -7,6 +7,7 @@ import { DataTable, type Column } from '../components/DataTable';
 import { Heatmap } from '../components/Heatmap';
 import { Page, useImportDialog } from '../components/Layout';
 import { QualityBadge } from '../components/QualityBadge';
+import { Sparkline } from '../components/Sparkline';
 import { arrow, fmtCompact, fmtNumber, fmtPct, fmtPrice, signClass } from '../core/format';
 import { MARKETS } from '../core/markets';
 import { getMarketStatus } from '../core/marketStatus';
@@ -47,6 +48,7 @@ export function Overview() {
 
   const cols: Column<MarketRow>[] = [
     { key: 'name', label: 'Company', render: (r) => <NameCell r={r} />, sort: (r) => r.security.code },
+    { key: 'trend', label: '30 bars', render: (r) => <Sparkline values={r.series.bars.slice(-30).map((b) => b.c)} /> },
     { key: 'last', label: 'Last', align: 'right', render: (r) => fmtPrice(r.last, r.security.currency), sort: (r) => r.last },
     { key: 'chg', label: 'Chg', align: 'right', render: (r) => <span className={signClass(r.change)}>{arrow(r.change)} {fmtNumber(r.change, 3)}</span>, sort: (r) => r.change },
     { key: 'pct', label: 'Chg %', align: 'right', render: (r) => <span className={signClass(r.changePct)}>{fmtPct(r.changePct)}</span>, sort: (r) => r.changePct },
@@ -103,13 +105,14 @@ export function Overview() {
       ) : (
         <div className="stack">
           <section aria-label="Market snapshot" className="grid cols-4">
-            <div className="panel stat">
+            <div className="panel stat hero">
               <div className="label">{market.benchmarkName}</div>
               {bench ? (
                 <>
                   <div className="value">{fmtNumber(bench.last)}</div>
                   <div className={`sub ${signClass(bench.changePct)}`}>{arrow(bench.change)} {fmtNumber(bench.change)} ({fmtPct(bench.changePct)})</div>
                   <div className="sub">as of {bench.asOf} · <QualityBadge quality={bench.series.quality} /></div>
+                  <div className="spark-slot"><Sparkline area width={110} height={44} values={bench.series.bars.slice(-60).map((b) => b.c)} /></div>
                 </>
               ) : (
                 <>
@@ -121,6 +124,13 @@ export function Overview() {
             <div className="panel stat">
               <div className="label">Breadth (loaded securities)</div>
               <div className="value"><span className="pos">▲{view.breadth.advancing}</span> <span className="neg">▼{view.breadth.declining}</span> <span className="flat">■{view.breadth.unchanged}</span></div>
+              {view.breadth.total > 0 && (
+                <div className="breadth" aria-hidden="true">
+                  <i className="up" style={{ flex: view.breadth.advancing }} />
+                  <i className="eq" style={{ flex: view.breadth.unchanged }} />
+                  <i className="down" style={{ flex: view.breadth.declining }} />
+                </div>
+              )}
               <div className="sub">of {view.breadth.total} comparable on {view.referenceDate ?? '–'}{view.staleRows.length > 0 && ` · ${view.staleRows.length} excluded (older data)`}</div>
             </div>
             <div className="panel stat">
@@ -151,9 +161,9 @@ export function Overview() {
 
           <section className="panel" aria-label="Market movers">
             <header><h2>Market movers</h2><span className="muted">{view.rows.length} comparable loaded securities</span></header>
-            <div className="tabs" role="tablist" aria-label="Mover lists">
+            <div className="chips" role="tablist" aria-label="Mover lists">
               {TABS.map((t) => (
-                <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className={`btn small${tab === t.key ? ' primary' : ''}`} onClick={() => setTab(t.key)}>{t.label}</button>
+                <button key={t.key} type="button" role="tab" aria-selected={tab === t.key} className="chip" onClick={() => setTab(t.key)}>{t.label}</button>
               ))}
             </div>
             <DataTable
