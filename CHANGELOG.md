@@ -11,6 +11,7 @@ All notable changes are recorded here. Format follows [Keep a Changelog](https:/
 - Python unit tests for the bridge (CI job) and TypeScript tests for the client and polling hook
 
 ### Changed
+- iPhone support: installable to the Home Screen (icons, manifest, full-screen metadata), safe-area spacing, 16px form fields so Safari does not zoom on focus, 44px tap targets, wrapped dropdowns and sort headers; Settings explains that the Moomoo bridge cannot run on iOS and disables it there
 - README now links to the hosted app and has step-by-step instructions for using the app, setting it up locally, publishing a copy on GitHub Pages, the optional Moomoo bridge, and troubleshooting
 
 ### Safety

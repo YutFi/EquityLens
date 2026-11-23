@@ -311,3 +311,53 @@ details.panel > summary { list-style: none; } details.panel > summary::-webkit-d
 input[type='range'] { width: 100%; accent-color: var(--accent); }
 details > summary { cursor: pointer; }
 .panel details { margin-top: 6px; }
+
+/* iPhone and other touch devices ------------------------------------------------------------ */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+button, .btn, .chip, .seg button, a { -webkit-tap-highlight-color: transparent; }
+@supports (height: 100dvh) {
+  .shell { min-height: 100dvh; }
+  .sidebar { height: 100dvh; }
+  .dialog { max-height: calc(100dvh - 32px); }
+}
+/* Notch, Dynamic Island and home-indicator spacing (only has an effect when the page is
+   installed to the Home Screen or viewed edge to edge). */
+@media (max-width: 900px) {
+  .header { padding-top: max(10px, env(safe-area-inset-top)); padding-left: max(14px, env(safe-area-inset-left)); padding-right: max(14px, env(safe-area-inset-right)); }
+  .main { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
+  .sidebar { padding-top: max(14px, env(safe-area-inset-top)); padding-bottom: max(14px, env(safe-area-inset-bottom)); }
+  .dialog-back { padding-top: max(16px, env(safe-area-inset-top)); padding-bottom: max(16px, env(safe-area-inset-bottom)); }
+}
+/* Touch: 16px fields stop iOS Safari zooming the page when a field is focused; 44px targets
+   follow Apple's minimum tap size. */
+@media (pointer: coarse) {
+  .input, select.input, textarea.input, input, select, textarea { font-size: 16px; }
+  .input, select.input { min-height: 44px; }
+  .btn, .chip, .seg button, .nav a { min-height: 44px; }
+  .btn.small { min-height: 40px; }
+  .seg button { padding-left: 10px; padding-right: 10px; }
+  .chips, .tabs { gap: 8px; }
+  input[type='checkbox'], input[type='radio'] { width: 20px; height: 20px; }
+  .table-wrap { -webkit-overflow-scrolling: touch; }
+}
+select.input { max-width: 100%; text-overflow: ellipsis; }
+label.field { min-width: 0; }
+label.field > select.input { width: 100%; box-sizing: border-box; }
+@media (pointer: coarse) {
+  .t th button { padding: 14px 6px; min-height: 44px; }
+}
+
+/* Phones: a three-row sticky header would cover a fifth of the screen, so it scrolls away and the
+   navigation button floats at the bottom right (reachable with the thumb, above the home indicator). */
+@media (max-width: 700px) {
+  .header { position: static; backdrop-filter: none; -webkit-backdrop-filter: none; }
+  .menu-btn {
+    position: fixed; z-index: 55; width: 54px; height: 54px; border-radius: 50%; padding: 0; justify-content: center;
+    right: max(16px, env(safe-area-inset-right)); bottom: max(18px, calc(env(safe-area-inset-bottom) + 10px));
+    background: var(--panel-solid); border: 1px solid var(--border-strong); box-shadow: var(--shadow);
+  }
+  .main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+}
+
+.seg { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+.seg::-webkit-scrollbar { display: none; }

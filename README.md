@@ -87,7 +87,21 @@ You can also use the Moomoo bridge or an EODHD key to fetch prices (see below), 
 
 Header controls: **Beginner / Advanced** (more detail), light/dark theme, and the market selector. Press `/` to search.
 
-### 5. Back up your data
+### 5. Use it on an iPhone or iPad
+
+1. Open https://yutfi.github.io/EquityLens/ in **Safari**.
+2. Tap the **Share** button, then **Add to Home Screen**, then **Add**. EquityLens now opens full screen like an app, with its own icon.
+3. Press **Import data** and choose a CSV from the **Files** app, or paste CSV text. Everything else works the same as on a computer.
+
+Things to know on iPhone:
+
+- **Live Moomoo data is not possible on a phone.** Moomoo's OpenD gateway runs only on Windows, Mac and Linux, and the Moomoo phone app cannot share data with other apps. The Moomoo bridge section in Settings says so and is switched off on iOS.
+- **Carry data from a computer to your phone:** set up the bridge on a computer, fetch prices, press **Settings → Export backup**, send the file to your phone (AirDrop or iCloud Drive), then **Settings → Restore from backup** on the phone. You get the prices as of the moment you exported, not live.
+- **Safari can delete saved website data** if you do not visit for about a week; sites added to the Home Screen are treated differently. Export a backup regularly.
+- It needs an internet connection to open the first time and has no offline mode yet.
+- Not yet tested on a physical iPhone: layout was checked at iPhone screen sizes in a desktop browser only.
+
+### 6. Back up your data
 
 Everything is stored in your browser only, so clearing site data or using a private window removes it. Use **Settings → Export backup** regularly, and **Restore from backup** to bring it back on this or another device.
 

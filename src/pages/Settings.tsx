@@ -3,6 +3,7 @@ import { Page } from '../components/Layout';
 import { MARKETS } from '../core/markets';
 import { loadEodhdKey, saveEodhdKey } from '../data/providers/eodhd';
 import { DEFAULT_BRIDGE_URL, describeFailure, fetchBridgeHealth, loadBridgeConfig, normaliseBridgeUrl, saveBridgeConfig } from '../data/providers/moomoo';
+import { isIosDevice } from '../core/device';
 import { useApp } from '../state/AppContext';
 
 function download(name: string, text: string) {
@@ -28,6 +29,7 @@ export function Settings() {
   const [bridgeMsg, setBridgeMsg] = useState<{ tone: 'info' | 'warn'; text: string } | null>(null);
   const [testing, setTesting] = useState(false);
   const bridgeUrlOk = normaliseBridgeUrl(bridgeUrl) != null;
+  const ios = isIosDevice();
   async function testBridge() {
     setTesting(true); setBridgeMsg(null);
     const r = await fetchBridgeHealth(bridgeUrl);
@@ -96,9 +98,14 @@ export function Settings() {
           <p className="evidence">
             Not verified: this build had no Moomoo account to test against. The OpenAPI itself is free, but market data needs the quote right on your account, and Moomoo applies quotas. Only addresses on this computer are accepted. Moomoo data is for your own use: do not share or publish it. It is labelled &quot;your Moomoo bridge&quot; and never &quot;verified&quot;. See docs/MOOMOO_BRIDGE.md.
           </p>
+          {ios && (
+            <div className="banner warn" role="note" style={{ marginBottom: 10 }}>
+              <b>Not available on iPhone or iPad.</b> Moomoo&apos;s OpenD gateway only runs on Windows, Mac and Linux, and the Moomoo phone app has no way to share its data with other apps. Use EquityLens in a browser on the computer that runs the bridge, or import CSV files here. You can also set up on a computer, press <b>Export backup</b>, and <b>Restore from backup</b> on this device to carry the stored prices across.
+            </div>
+          )}
           <div className="row">
             <label className="row" style={{ alignSelf: 'end' }}>
-              <input type="checkbox" checked={bridgeOn} onChange={(e) => { setBridgeOn(e.target.checked); saveBridgeConfig({ enabled: e.target.checked && bridgeUrlOk, url: normaliseBridgeUrl(bridgeUrl) ?? DEFAULT_BRIDGE_URL }); }} />
+              <input type="checkbox" disabled={ios} checked={bridgeOn && !ios} onChange={(e) => { setBridgeOn(e.target.checked); saveBridgeConfig({ enabled: e.target.checked && bridgeUrlOk, url: normaliseBridgeUrl(bridgeUrl) ?? DEFAULT_BRIDGE_URL }); }} />
               <span>Use the Moomoo bridge</span>
             </label>
             <label className="field" style={{ minWidth: 260 }}>Bridge address
@@ -108,7 +115,7 @@ export function Settings() {
                 saveBridgeConfig({ enabled: bridgeOn && n != null, url: n ?? DEFAULT_BRIDGE_URL });
               }} placeholder={DEFAULT_BRIDGE_URL} />
             </label>
-            <button type="button" className="btn" style={{ alignSelf: 'end' }} disabled={testing || !bridgeUrlOk} onClick={() => void testBridge()}>{testing ? 'Testing…' : 'Test connection'}</button>
+            <button type="button" className="btn" style={{ alignSelf: 'end' }} disabled={testing || !bridgeUrlOk || ios} onClick={() => void testBridge()}>{testing ? 'Testing…' : 'Test connection'}</button>
           </div>
           {!bridgeUrlOk && <p className="evidence" role="alert">Only addresses on this computer are accepted, such as http://127.0.0.1:8765.</p>}
           {bridgeMsg && <div className={`banner ${bridgeMsg.tone}`} role="status" style={{ marginTop: 10 }}>{bridgeMsg.text}</div>}

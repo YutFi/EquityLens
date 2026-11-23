@@ -18,6 +18,7 @@ import { peerMultiples } from '../analytics/metrics';
 import { buildEodhdSeries, fetchEodhdHistory, loadEodhdKey } from '../data/providers/eodhd';
 import { applyLiveQuote, buildMoomooSeries, describeFailure, fetchBridgeHistory, loadBridgeConfig, moomooCode } from '../data/providers/moomoo';
 import { useLiveQuote } from '../state/useLiveQuote';
+import { isIosDevice } from '../core/device';
 import { FundamentalsDialog } from '../components/FundamentalsDialog';
 import { FinancialsPanel } from '../components/research/FinancialsPanel';
 import { ForecastPanel } from '../components/research/ForecastPanel';
@@ -75,7 +76,7 @@ export function CompanyPage() {
 
   const sec = app.securities.find((s) => s.id === id);
   const series = app.state.seriesById[id];
-  const bridgeOk = bridge.enabled && sec != null && moomooCode(sec) != null;
+  const bridgeOk = bridge.enabled && !isIosDevice() && sec != null && moomooCode(sec) != null;
   const liveState = useLiveQuote(bridgeOk ? sec : undefined, bridge.url, bridgeOk && live);
   const advanced = app.state.settings.level === 'advanced';
   const market = sec ? MARKETS[sec.market] : MARKETS[app.state.settings.market];

@@ -99,4 +99,17 @@ describe('App smoke test', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  it('explains on iPhone that the Moomoo bridge cannot run there, and disables its controls', async () => {
+    const spy = vi.spyOn(window.navigator, 'userAgent', 'get').mockReturnValue('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Mobile/15E148 Safari/604.1');
+    try {
+      window.location.hash = '#/settings';
+      render(<App />);
+      expect(await screen.findByText(/not available on iphone or ipad/i)).toBeInTheDocument();
+      expect(screen.getByLabelText(/use the moomoo bridge/i)).toBeDisabled();
+      expect(screen.getByRole('button', { name: /test connection/i })).toBeDisabled();
+    } finally {
+      spy.mockRestore();
+    }
+  });
 });

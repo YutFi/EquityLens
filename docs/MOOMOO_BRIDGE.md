@@ -57,6 +57,10 @@ If your browser blocks a hosted page from reaching localhost, export files inste
 python3 bridge/moomoo_bridge.py export 1155 5183 --from 2024-01-01 --out-dir moomoo_export
 ```
 
+## iPhone, iPad and Android
+
+The bridge cannot run on a phone or tablet. Moomoo documents OpenD for Windows, macOS and Linux only, and the Moomoo phone app has no API for other apps. EquityLens turns the bridge controls off on iOS and says why. To get Moomoo prices onto a phone, fetch them on a computer, use **Settings → Export backup**, and **Restore from backup** on the phone. Making the bridge reachable from a phone over a network would need HTTPS, authentication and an always-on computer or server, and it widens the data-licensing and security questions above, so it is not built.
+
 ## Safety model
 
 - **Read-only.** The script has no trading, order, account or position code (a test asserts this).
